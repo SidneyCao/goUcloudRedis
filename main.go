@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 
 	"github.com/ucloud/ucloud-sdk-go/services/umem"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
@@ -12,9 +16,11 @@ import (
 var (
 	pubK   = flag.String("pub", "", "PublicKey 默认为空")
 	priK   = flag.String("pri", "", "PrivateKey 默认为空")
-	file   = flag.String("f", "", "日期 默认为空")
+	name   = flag.String("n", "", "备份名 默认为空")
 	action = flag.String("a", "", "行为 默认为空")
 )
+
+const filePath string = "./lastRedisBackupID.txt"
 
 func main() {
 
@@ -49,28 +55,50 @@ func CreateBackup(umemClient *umem.UMemClient) string {
 	req.Zone = ucloud.String("kr-seoul-01")
 	req.ProjectId = ucloud.String("org-4ak3mv")
 	req.GroupId = ucloud.String("uredis-112q4qie")
-	req.BackupName = ucloud.String(*file)
+	req.BackupName = ucloud.String(*name)
 
 	resp, err := umemClient.CreateURedisBackup(req)
 	if err != nil {
-		return fmt.Sprint("[ERROR]", err)
+		log.Panic("[ERROR]", err)
 	}
 
-	return fmt.Sprint("[RESPONSE]", resp)
+	s := fmt.Sprint("[RESPONSE]", resp)
+	backupID := strings.Split(s, "}")[1]
+	backupID = strings.TrimSpace(backupID)
+
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer file.Close()
+
+	write := bufio.NewWriter(file)
+	write.WriteString(backupID)
+	write.Flush()
+
+	return backupID
 }
 
 func DownloadBackup(umemClient *umem.UMemClient) string {
+
+	backupID, err := os.ReadFile(filePath)
+	if err != nil {
+		log.Panic(err)
+	}
+
 	req := umemClient.NewDescribeURedisBackupURLRequest()
 	req.Zone = ucloud.String("kr-seoul-01")
 	req.ProjectId = ucloud.String("org-4ak3mv")
-	req.BackupId = ucloud.String(*file)
+	req.BackupId = ucloud.String(string(backupID))
 	req.GroupId = ucloud.String("uredis-112q4qie")
 
 	resp, err := umemClient.DescribeURedisBackupURL(req)
 	if err != nil {
-		fmt.Println("[ERROR]", err)
-		return fmt.Sprint("[ERROR]", err)
+		log.Panic("[ERROR]", err)
 	}
 
-	return fmt.Sprint("[RESPONSE]", resp)
+	s := fmt.Sprint("[RESPONSE]", resp)
+	url := strings.Split(s, " ")[5]
+	url = strings.TrimSpace(url)
+	return url
 }
