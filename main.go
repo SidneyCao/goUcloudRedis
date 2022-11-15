@@ -57,20 +57,23 @@ func CreateBackup(umemClient *umem.UMemClient) string {
 	req.GroupId = ucloud.String("uredis-112q4qie")
 	req.BackupName = ucloud.String(*name)
 
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer file.Close()
+
 	resp, err := umemClient.CreateURedisBackup(req)
 	if err != nil {
+		write := bufio.NewWriter(file)
+		write.WriteString("backup error!")
+		write.Flush()
 		log.Panic("[ERROR]", err)
 	}
 
 	s := fmt.Sprint("[RESPONSE]", resp)
 	backupID := strings.Split(s, "}")[1]
 	backupID = strings.TrimSpace(backupID)
-
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer file.Close()
 
 	write := bufio.NewWriter(file)
 	write.WriteString(backupID)
