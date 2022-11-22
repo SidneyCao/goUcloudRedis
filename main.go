@@ -96,7 +96,7 @@ func DownloadBackup(umemClient *umem.UMemClient) string {
 	req.Zone = ucloud.String("kr-seoul-01")
 	req.ProjectId = ucloud.String("org-4ak3mv")
 	req.BackupId = ucloud.String(string(backupID))
-	req.GroupId = ucloud.String("uredis-112q4qie")
+	req.GroupId = ucloud.String(*rid)
 
 	resp, err := umemClient.DescribeURedisBackupURL(req)
 	if err != nil {
