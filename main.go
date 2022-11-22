@@ -18,9 +18,10 @@ var (
 	priK   = flag.String("pri", "", "PrivateKey 默认为空")
 	name   = flag.String("n", "", "备份名 默认为空")
 	action = flag.String("a", "", "行为 默认为空")
+	rid    = flag.String("i", "", "redis id 默认为空")
 )
 
-const filePath string = "./lastRedisBackupID.txt"
+const filePath string = "./lastRedisBackupID-"
 
 func main() {
 
@@ -54,10 +55,11 @@ func CreateBackup(umemClient *umem.UMemClient) string {
 	req := umemClient.NewCreateURedisBackupRequest()
 	req.Zone = ucloud.String("kr-seoul-01")
 	req.ProjectId = ucloud.String("org-4ak3mv")
-	req.GroupId = ucloud.String("uredis-112q4qie")
+	req.GroupId = ucloud.String(*rid)
 	req.BackupName = ucloud.String(*name)
 
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	nFile := filePath + *rid + ".txt"
+	file, err := os.OpenFile(nFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -84,7 +86,8 @@ func CreateBackup(umemClient *umem.UMemClient) string {
 
 func DownloadBackup(umemClient *umem.UMemClient) string {
 
-	backupID, err := os.ReadFile(filePath)
+	nFile := filePath + *rid + ".txt"
+	backupID, err := os.ReadFile(nFile)
 	if err != nil {
 		log.Panic(err)
 	}
